@@ -43,13 +43,12 @@ def signed_in?
 end
 
 get "/" do
-  if signed_in? 
     @files 
     erb :home, layout: :layout 
-  else 
-    status 302
-    redirect "/users/signin"
-  end
+  # else 
+  #   status 302
+  #   redirect "/users/signin"
+  # end
 end
 
 get "/users/signin" do

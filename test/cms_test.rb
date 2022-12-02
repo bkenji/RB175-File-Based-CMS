@@ -30,12 +30,6 @@ class CMSTest < Minitest::Test
     {"rack.session" => {username: "admin", password: "secret"}}
   end
   
-  def test_home_signed_out
-    get "/"
-
-    assert_equal 302, last_response.status
-  end
-
   def test_home_signed_in
     create_document "about.md"
     create_document "changes.txt"
@@ -63,8 +57,6 @@ class CMSTest < Minitest::Test
     get "/nonexistent.txt"
 
     assert_equal 302, last_response.status
-    
-    get last_response["location"]
 
     assert_equal 302, last_response.status 
     assert_equal "nonexistent.txt does not exist.", session[:message]
@@ -94,9 +86,7 @@ class CMSTest < Minitest::Test
   
     post "/about.md", content: "# A markdown heading."
 
-    assert_equal 302, last_response.status
-
-    get last_response["location"]
+    assert_equal 302, last_response.status   
 
     assert_equal "about.md has been updated.", session[:message]
 
@@ -117,11 +107,9 @@ class CMSTest < Minitest::Test
 
     post "/create", content: "teste.md"
     assert_equal 302, last_response.status
-
     assert_equal "teste.md has been created.", session[:message]
   
-     get last_response["location"]
-     get last_response["location"] 
+     get "/"
      assert_equal 200, last_response.status
     assert_includes last_response.body, "teste.md"
   end
@@ -149,11 +137,7 @@ class CMSTest < Minitest::Test
     post "/test.txt/delete"
 
     assert_equal 302, last_response.status
-
-    get last_response["location"]
     assert_equal "test.txt has been deleted.", session[:message]
-
-    get "/"
     refute_includes last_response.body, "test.txt"
   end
 
