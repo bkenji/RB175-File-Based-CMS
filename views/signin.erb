@@ -1,0 +1,16 @@
+
+<h2> User Sign In </h2>
+
+<form action="/users/signin" method="post">
+  <div>
+    <label for="username"> Username:
+      <input name="username" id="username" value="<%= params[:username] %>">
+    </label>
+  </div>
+  <div>
+    <label for="password"> Password:
+      <input name="password" type="password" id="password">
+    </label>
+  </div>
+    <button>Sign In</button>
+</form>

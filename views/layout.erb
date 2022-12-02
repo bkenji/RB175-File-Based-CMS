@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en-US">
+<head>
+  <title>File-based CMS</title>
+  <meta charset="utf-8">
+  <link rel="stylesheet" href="/stylesheets/cms.css">
+</head>
+
+<body>
+<main>
+<% if session[:message] %>
+  <p class="message"><%= session.delete(:message)%></p>
+<% end %>
+
+  <%= yield %>
+</main>
+
+</body>
+
+
+
+
+
+</html>
