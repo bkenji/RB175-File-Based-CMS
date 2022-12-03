@@ -34,7 +34,15 @@ def load_file(path)
   elsif file_name =~ /.+\.txt$/
     headers["Content-Type"] = "text/plain"
     File.read(path)
+  else
+    session[:message] = "File format not supported"
+    redirect "/"
   end
+end
+
+def supported_files?(file_name)
+  file_name =~ /.+\.md$/ ||
+  file_name =~ /.+\.txt$/
 end
 
 def render_md(file)
@@ -167,10 +175,13 @@ post "/create" do
     session[:message] = "File needs an extension."
     status 422
     erb :new, layout: :layout
-  else 
+  elsif supported_files?(@doc)
     create_document(@doc)
     session[:message] = "#{@doc} has been created."
     redirect "/"
+  else 
+    session[:message] = "File format not supported."
+    erb :new, layout: :layout
   end
 end
 
