@@ -189,7 +189,7 @@ class CMSTest < Minitest::Test
   end 
 
   def test_signin
-    post "/users/signin", username: "admin", password: "secret"
+    post "/users/signin", {username: "admin", password: "secret"}
     assert_equal 302, last_response.status
     assert_equal "Welcome, admin!", session[:message]
 
@@ -197,5 +197,17 @@ class CMSTest < Minitest::Test
 
     assert_includes last_response.body, "Welcome, admin"
     assert_includes last_response.body, "Signed in as admin"
+  end
+
+  def test_signup_page
+    get "users/signup"
+
+    assert_equal 200, last_response.status
+  end
+
+  def test_signup
+    post "users/signup", {new_username: "john", new_password: "pw"}
+    
+    assert_equal 302, last_response.status
   end
 end

@@ -87,6 +87,35 @@ def load_users
   YAML.load_file(users_path) # returns an array of hashes with users credentials 
 end
 
+get "/users/signup" do
+  
+  erb :signup, layout: :layout
+end
+
+post "/users/signup" do
+  existing_users = load_users
+  new_username = params[:new_username]
+  if params[:new_username].empty? || params[:new_password].empty?
+    session[:message] = "Fields cannot be empty."
+    status 422
+    erb :signup, layout: :layout
+  elsif
+     existing_users.key?(new_username)
+    session[:message] = "Username already exists. Try <a href='/users/signin'>signing in</a>." 
+    status 422
+    erb :signup, layout: :layout
+  else
+    bcrypt_pw = BCrypt::Password.create(params[:new_password])
+
+    File.open("users.yml", "a") do |file|
+      file.puts("\n#{new_username}: #{bcrypt_pw}")
+    end
+    session[:username] = new_username
+    session[:message] = "Welcome, #{new_username}!"
+    redirect "/"
+  end
+end
+
 post "/users/signin" do
   credentials = load_users
   username = params[:username]

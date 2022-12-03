@@ -1,0 +1,16 @@
+<h2> New User Sign Up</h2>
+<p>Already have an account? <a href="/users/signin">Sign in.</a>
+
+<form action="/users/signup" method="post">
+  <div>
+    <label for="username"> Username:
+      <input name="new_username" id="new_username" value="<%= params[:new_username] %>">
+    </label>
+  </div>
+  <div>
+    <label for="new_password"> Password:
+      <input name="new_password" type="password" id="new_password">
+    </label>
+  </div>
+    <button>Sign Up</button>
+</form>
