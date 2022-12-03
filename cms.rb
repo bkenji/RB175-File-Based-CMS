@@ -3,6 +3,10 @@ require "sinatra/reloader" if development?
 require "tilt/erubis"
 require "redcarpet"
 
+require "yaml"
+
+require "bcrypt"
+
 # data_path = File.expand_path(__dir__)
 
 configure do
@@ -38,36 +42,68 @@ def render_md(file)
   markdown.render(file)
 end
 
+def check_user_authentication
+  must_sign_in unless signed_in?
+end
+
 def signed_in?
-  session[:username] == "admin" && session[:password] == "secret"
+  session.key?(:username)
+end
+
+def must_sign_in
+  session[:message] = "You must be signed in to do that."
+  redirect "/"
 end
 
 get "/" do
     @files 
     erb :home, layout: :layout 
-  # else 
-  #   status 302
-  #   redirect "/users/signin"
-  # end
 end
 
+def signout
+  session.delete(:message)
+  session.delete(:username)
+  session.delete(:password)
+  session["message"] = "You have been signed out."
+
+  redirect "/"
+end
 get "/users/signin" do
 
+  if signed_in? 
+    message = "You're already signed in as #{session[:username]}"
+    session[:message] = message + " (<a href='/users/signout'>Not you?</a>)"
+    redirect "/"
+  end
   erb :signin, layout: :layout
 end
 
-post "/users/signin" do
+def load_users
+  users_path = if ENV["RACK_ENV"] == "test"
+    File.expand_path("../test/users.yml", __FILE__)
+  else 
+    File.expand_path("../users.yml", __FILE__)
+  end
+  YAML.load_file(users_path) # returns an array of hashes with users credentials 
+end
 
-  if params[:username] == "admin" && params[:password] == "secret"
-    session[:username] = params[:username]
-    session[:password] = params[:password]
-    session[:message] = "Welcome, #{session[:username]}!"
+post "/users/signin" do
+  credentials = load_users
+  username = params[:username]
+
+  if credentials.key?(username) && BCrypt::Password.new(credentials[username]) == params[:password]
+    session[:username] = username
+    session[:message] = "Welcome, #{username}!"
     redirect "/"
   else
     session[:message] = "Invalid Credentials"
     status 422
     erb :signin, layout: :layout
   end
+end
+
+get "/users/signout" do
+  signout
 end
 
 post "/users/signout" do
@@ -86,6 +122,8 @@ def create_document(name, content = "")
 end
 
 post "/create" do
+  check_user_authentication
+
   @doc = params[:content]
 
   if  @doc.empty?
@@ -108,6 +146,7 @@ post "/create" do
 end
 
 get "/new" do
+  check_user_authentication
 
   erb :new, layout: :layout
 end
@@ -125,6 +164,8 @@ get "/:file_name" do
 end
 
 post "/:file_name" do
+  check_user_authentication
+  
   session[:message] = "#{params[:file_name]} has been updated."
   @file = File.join(data_path, params[:file_name])
   File.write(@file, params[:content])
@@ -133,6 +174,8 @@ end
 
 
 get "/:file_name/edit" do
+  check_user_authentication
+
  "Edit #{params[:file_name]}"
  @file = params[:file_name]
  @path = File.join(data_path, @file)
@@ -142,6 +185,8 @@ get "/:file_name/edit" do
 end
 
 post "/:file_name/delete" do
+  check_user_authentication
+
   @file = params[:file_name]
   @path = File.join(data_path, @file)
   File.delete(@path)
