@@ -1,29 +1,29 @@
-require "sinatra"
-require "sinatra/reloader" if development?
-require "tilt/erubis"
-require "redcarpet"
+require 'sinatra'
+require 'sinatra/reloader' if development?
+require 'tilt/erubis'
+require 'redcarpet'
 
-require "yaml"
+require 'yaml'
 
-require "bcrypt"
+require 'bcrypt'
 
 # data_path = File.expand_path(__dir__)
 
 configure do
   enable :sessions
-  set :session_secret, "87adee2f28ad318d51d500b913eea9d624ca4cce5fdf06767054198199ebfc51"
+  set :session_secret, '87adee2f28ad318d51d500b913eea9d624ca4cce5fdf06767054198199ebfc51'
 end
 
 before do
-  pattern = File.join(data_path, "*")
+  pattern = File.join(data_path, '*')
   @files = Dir.glob(pattern).map { |path| File.basename(path) }
 end
 
 def data_path
-  if ENV["RACK_ENV"] == "test"
-    File.expand_path("../test/data", __FILE__)
+  if ENV['RACK_ENV'] == 'test'
+    File.expand_path('test/data', __dir__)
   else
-    File.expand_path("../data", __FILE__)
+    File.expand_path('data', __dir__)
   end
 end
 
@@ -32,17 +32,17 @@ def load_file(path)
   if file_name =~ /.+\.md$/
     erb render_md(File.read(path))
   elsif file_name =~ /.+\.txt$/
-    headers["Content-Type"] = "text/plain"
+    headers['Content-Type'] = 'text/plain'
     File.read(path)
   else
-    session[:message] = "File format not supported"
-    redirect "/"
+    session[:message] = 'File format not supported'
+    redirect '/'
   end
 end
 
 def supported_files?(file_name)
   file_name =~ /.+\.md$/ ||
-  file_name =~ /.+\.txt$/
+    file_name =~ /.+\.txt$/
 end
 
 def render_md(file)
@@ -59,177 +59,173 @@ def signed_in?
 end
 
 def must_sign_in
-  session[:message] = "You must be signed in to do that."
-  redirect "/"
+  session[:message] = 'You must be signed in to do that.'
+  redirect '/'
 end
 
-get "/" do
-    @files 
-    erb :home, layout: :layout 
+get '/' do
+  @files
+  erb :home, layout: :layout
 end
 
 def signout
   session.delete(:message)
   session.delete(:username)
   session.delete(:password)
-  session["message"] = "You have been signed out."
+  session['message'] = 'You have been signed out.'
 
-  redirect "/"
+  redirect '/'
 end
-get "/users/signin" do
-
-  if signed_in? 
+get '/users/signin' do
+  if signed_in?
     message = "You're already signed in as #{session[:username]}"
     session[:message] = message + " (<a href='/users/signout'>Not you?</a>)"
-    redirect "/"
+    redirect '/'
   end
   erb :signin, layout: :layout
 end
 
 def load_users
-  users_path = if ENV["RACK_ENV"] == "test"
-    File.expand_path("../test/users.yml", __FILE__)
-  else 
-    File.expand_path("../users.yml", __FILE__)
-  end
-  YAML.load_file(users_path) # returns an array of hashes with users credentials 
+  users_path = if ENV['RACK_ENV'] == 'test'
+                 File.expand_path('test/users.yml', __dir__)
+               else
+                 File.expand_path('users.yml', __dir__)
+               end
+  YAML.load_file(users_path) # returns an array of hashes with users credentials
 end
 
-get "/users/signup" do
-  
+get '/users/signup' do
   erb :signup, layout: :layout
 end
 
-post "/users/signup" do
+post '/users/signup' do
   existing_users = load_users
   new_username = params[:new_username]
   if params[:new_username].empty? || params[:new_password].empty?
-    session[:message] = "Fields cannot be empty."
+    session[:message] = 'Fields cannot be empty.'
     status 422
     erb :signup, layout: :layout
-  elsif
-     existing_users.key?(new_username)
-    session[:message] = "Username already exists. Try <a href='/users/signin'>signing in</a>." 
+  elsif existing_users.key?(new_username)
+    session[:message] = "Username already exists. Try <a href='/users/signin'>signing in</a>."
     status 422
     erb :signup, layout: :layout
   else
     bcrypt_pw = BCrypt::Password.create(params[:new_password])
 
-    File.open("users.yml", "a") do |file|
+    File.open('users.yml', 'a') do |file|
       file.puts("\n#{new_username}: #{bcrypt_pw}")
     end
     session[:username] = new_username
     session[:message] = "Welcome, #{new_username}!"
-    redirect "/"
+    redirect '/'
   end
 end
 
-post "/users/signin" do
+post '/users/signin' do
   credentials = load_users
   username = params[:username]
 
   if credentials.key?(username) && BCrypt::Password.new(credentials[username]) == params[:password]
     session[:username] = username
     session[:message] = "Welcome, #{username}!"
-    redirect "/"
+    redirect '/'
   else
-    session[:message] = "Invalid Credentials"
+    session[:message] = 'Invalid Credentials'
     status 422
     erb :signin, layout: :layout
   end
 end
 
-get "/users/signout" do
+get '/users/signout' do
   signout
 end
 
-post "/users/signout" do
+post '/users/signout' do
   session.delete(:message)
   session.delete(:username)
   session.delete(:password)
-  session["message"] = "You have been signed out."
+  session['message'] = 'You have been signed out.'
 
-  redirect "/"
+  redirect '/'
 end
 
-def create_document(name, content = "")
-  File.open(File.join(data_path, name), "w") do |file|
+def create_document(name, content = '')
+  File.open(File.join(data_path, name), 'w') do |file|
     file.write(content)
   end
 end
 
-post "/create" do
+post '/create' do
   check_user_authentication
 
   @doc = params[:content]
 
-  if  @doc.empty?
-    session[:message] = "A name is required."
+  if @doc.empty?
+    session[:message] = 'A name is required.'
     status 422
     erb :new, layout: :layout
   elsif @files.include?(@doc)
-    session[:message] = "Filename already in use. Try again."
+    session[:message] = 'Filename already in use. Try again.'
     status 422
     erb :new, layout: :layout
   elsif !@doc.match?(/.+\.\w+$/)
-    session[:message] = "File needs an extension."
+    session[:message] = 'File needs an extension.'
     status 422
     erb :new, layout: :layout
   elsif supported_files?(@doc)
     create_document(@doc)
     session[:message] = "#{@doc} has been created."
-    redirect "/"
-  else 
-    session[:message] = "File format not supported."
+    redirect '/'
+  else
+    session[:message] = 'File format not supported.'
     erb :new, layout: :layout
   end
 end
 
-get "/new" do
+get '/new' do
   check_user_authentication
 
   erb :new, layout: :layout
 end
 
-get "/:file_name" do
-  file = params[:file_name]
+get '/:file_name' do
+  file = File.basename(params[:file_name])
   @path = File.join(data_path, file)
 
   if File.exist?(@path)
-   load_file(@path)
+    load_file(@path)
   else
     session[:message] = "#{file} does not exist."
-    redirect "/"
+    redirect '/'
   end
 end
 
-post "/:file_name" do
+post '/:file_name' do
   check_user_authentication
-  
+
   session[:message] = "#{params[:file_name]} has been updated."
   @file = File.join(data_path, params[:file_name])
   File.write(@file, params[:content])
-  redirect "/"
+  redirect '/'
 end
 
-
-get "/:file_name/edit" do
+get '/:file_name/edit' do
   check_user_authentication
 
- "Edit #{params[:file_name]}"
- @file = params[:file_name]
- @path = File.join(data_path, @file)
- @text = File.read(@path)
+  "Edit #{params[:file_name]}"
+  @file = params[:file_name]
+  @path = File.join(data_path, @file)
+  @text = File.read(@path)
 
- erb :edit, layout: :layout
+  erb :edit, layout: :layout
 end
 
-post "/:file_name/delete" do
+post '/:file_name/delete' do
   check_user_authentication
 
   @file = params[:file_name]
   @path = File.join(data_path, @file)
   File.delete(@path)
   session[:message] = "#{@file} has been deleted."
-  redirect "/"
+  redirect '/'
 end

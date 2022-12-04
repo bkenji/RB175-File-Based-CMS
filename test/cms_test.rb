@@ -48,7 +48,7 @@ class CMSTest < Minitest::Test
 
     get "/changes.txt"
     assert_equal 200, last_response.status
-    assert_equal "text/plain", last_response["Content-Type"]
+    assert_equal "text/plain", last_response.headers["Content-Type"]
     assert_includes last_response.body, "This is a sample text..."
   end
 
